@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polished Diction — Word of the Day</title>
+  <style>
+    :root{
+      --bg:#0f1115; --card:#171a21; --ink:#e6e8ed; --muted:#a8b0c3; --accent:#9ccfd8; --ok:#7bd88f; --warn:#f2a65a; --bad:#ef6a73;
+      --link:#b8c0ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    a{color:var(--link);text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{position:sticky;top:0;background:linear-gradient(180deg,rgba(15,17,21,.95),rgba(15,17,21,.7));backdrop-filter: blur(6px);
+      border-bottom:1px solid #222;z-index:10}
+    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    h1{font-size:1.4rem;margin:4px 0 0 0}
+    .sub{color:var(--muted);font-size:.95rem;margin:6px 0 8px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:2fr 1fr}}
+    .card{background:var(--card);border:1px solid #222;border-radius:14px;padding:16px}
+    .pill{display:inline-flex;gap:6px;align-items:center;border:1px solid #2a2f3a;border-radius:999px;padding:4px 10px;color:var(--muted);font-size:.9rem}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .big{font-size:1.8rem;margin:2px 0 8px}
+    .ipa{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace}
+    .def{font-size:1.1rem;margin:8px 0 12px}
+    .muted{color:var(--muted)}
+    .btn{cursor:pointer;background:#1f2430;border:1px solid #2a2f3a;color:var(--ink);padding:10px 14px;border-radius:10px}
+    .btn:hover{background:#232938}
+    .btn.primary{background:#253042;border-color:#2e3a4f}
+    .btn.ok{background:#1d2b22;border-color:#284d3a}
+    .btn.warn{background:#2b251c;border-color:#4d3b28}
+    .score{font-variant-numeric:tabular-nums}
+    .tag{background:#1d2330;border:1px solid #2a3245;padding:2px 8px;border-radius:8px;color:var(--muted);font-size:.85rem}
+    .small{font-size:.9rem}
+    textarea{width:100%;min-height:84px;background:#0f131a;color:var(--ink);border:1px solid #2a2f3a;border-radius:10px;padding:10px;resize:vertical}
+    input[type="text"]{width:100%;background:#0f131a;color:var(--ink);border:1px solid #2a2f3a;border-radius:10px;padding:10px}
+    .list li{margin:6px 0}
+    .kudos{color:var(--ok)}
+    .warned{color:var(--warn)}
+    .bad{color:var(--bad)}
+    .hidden{display:none}
+    .foot{color:var(--muted);font-size:.85rem;margin-top:6px}
+    .spaced{letter-spacing:.2px}
+    .progress{height:8px;background:#0f131a;border:1px solid #2a2f3a;border-radius:999px;overflow:hidden}
+    .progress > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));width:0%}
+  </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="icon-192.png">
+  <link rel="icon" sizes="512x512" href="icon-512.png">
+  <meta name="theme-color" content="#0f1115">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h1>Polished Diction</h1>
+        <div class="sub">A calm, British-English “word of the day” with light gamification — think precise, intelligible, Sam-Harris-ish.</div>
+      </div>
+      <div class="row">
+        <div class="pill score">⭐ Points: <span id="points">0</span></div>
+        <div class="pill">🔥 Streak: <span id="streak">0</span> days</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap grid">
+  <section class="card" id="wotdCard">
+    <div class="row">
+      <span class="tag" id="today"></span>
+      <span class="tag" id="levelTag">Level 1 • Initiate</span>
+      <button class="btn small" id="notifyBtn" title="Ask the browser to remind you at 9am local time">Enable reminder</button>
+    </div>
+    <div class="big" id="word">Loading…</div>
+    <div class="ipa" id="ipa"></div>
+    <div class="row muted small">
+      <span id="pos"></span><span>•</span><span id="register"></span>
+    </div>
+    <div class="def" id="definition">—</div>
+    <div class="muted" id="nuance"></div>
+    <ul class="list">
+      <li><strong>Example</strong>: <span id="example"></span></li>
+      <li><strong>Synonyms</strong>: <span id="synonyms"></span></li>
+      <li><strong>Beware</strong>: <span id="beware"></span></li>
+    </ul>
+
+    <div style="margin-top:16px">
+      <div class="row" style="align-items:center; justify-content:space-between">
+        <div class="row">
+          <button class="btn ok" id="markLearnt">Mark read (+1)</button>
+          <button class="btn" id="newWordBtn" title="Pick another word (no streak effect)">Another word</button>
+        </div>
+        <div class="row">
+          <span class="muted small">Mastery</span>
+        </div>
+      </div>
+      <div class="progress" aria-label="Mastery progress"><div id="masteryBar"></div></div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <h3 style="margin-top:0">Daily quiz</h3>
+    <p class="muted small spaced" id="quizPrompt">Choose the best definition.</p>
+    <div id="quizOptions"></div>
+    <div id="quizFeedback" class="small" style="margin-top:8px"></div>
+    <button class="btn" id="nextQuiz" style="margin-top:10px">Next question</button>
+  </aside>
+
+  <section class="card">
+    <h3 style="margin-top:0">Use it today</h3>
+    <p class="muted small">Write a sentence with the word. Keep it natural; intelligibility over ostentation.</p>
+    <textarea id="sentence" placeholder="Type your sentence here…"></textarea>
+    <div class="row" style="justify-content:space-between; margin-top:8px">
+      <button class="btn ok" id="saveSentence">Save sentence (+5)</button>
+      <span class="muted small">Saved: <span id="savedCount">0</span></span>
+    </div>
+    <div id="sentenceList" class="small" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card">
+    <h3 style="margin-top:0">Library & custom words</h3>
+    <p class="muted small">Add your own words (British spelling preferred). They’ll enter the rotation.</p>
+    <div class="row">
+      <input id="customWord" type="text" placeholder="Word (e.g., ‘pellucid’)">
+      <input id="customDef" type="text" placeholder="Plain-English definition">
+      <button class="btn" id="addCustom">Add</button>
+    </div>
+    <details style="margin-top:12px">
+      <summary class="muted">Show library (tap to expand)</summary>
+      <div id="library"></div>
+    </details>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="exportBtn">Export progress</button>
+      <input id="importFile" type="file" accept="application/json" class="hidden">
+      <button class="btn" id="importBtn">Import</button>
+      <button class="btn warn" id="resetBtn" title="This only resets scores and streaks, not the word list">Reset</button>
+    </div>
+    <div class="foot">Progress is stored privately in your browser (localStorage). No data leaves your device.</div>
+  </section>
+</main>
+
+<footer class="wrap" style="margin-bottom:40px">
+  <p class="muted small">Tip: allow notifications for a gentle 09:00 prompt. British English spellings are used throughout.</p>
+</footer>
+
+<script>
+// -------- Vocabulary list (British English, C1-ish) --------
+const LIB = [
+  {w:"erudite", ipa:"/ˈɛrjʊdaɪt/", pos:"adjective", reg:"formal", d:"Having or showing deep, well-read knowledge.", n:"Positive; suggests learning without boasting.", ex:"Her erudite lecture clarified a messy debate.", syn:"learned, scholarly", beware:"Not the same as ‘pedantic’ (fussy over minor details)."},
+  {w:"pedantic", ipa:"/pɪˈdantɪk/", pos:"adjective", reg:"disapproving", d:"Overly concerned with small rules or trivial detail.", n:"Often implies missing the bigger picture.", ex:"His pedantic corrections slowed the meeting to a crawl.", syn:"fussy, nit-picking", beware:"Use sparingly; it can sound barbed."},
+  {w:"intelligible", ipa:"/ɪnˈtɛlɪdʒɪbəl/", pos:"adjective", reg:"neutral", d:"Able to be understood; clear enough to make sense.", n:"Focuses on clarity for the audience.", ex:"Keep the report intelligible to non-specialists.", syn:"comprehensible, clear", beware:"Not the same as ‘intelligent’."},
+  {w:"profusion", ipa:"/prəˈfjuːʒən/", pos:"noun", reg:"neutral", d:"A large quantity of something.", n:"Often used with ‘of’.", ex:"A profusion of half-finished initiatives confused staff.", syn:"abundance, multitude", beware:"Neutral; context makes it good or bad."},
+  {w:"cogent", ipa:"/ˈkəʊdʒənt/", pos:"adjective", reg:"approving", d:"Clear, logical and persuasive.", n:"Strong compliment for arguments.", ex:"She made a cogent case for delaying the rollout.", syn:"compelling, convincing", beware:"Reserve for sound reasoning, not mere rhetoric."},
+  {w:"salient", ipa:"/ˈseɪlɪənt/", pos:"adjective", reg:"neutral", d:"Most noticeable or important.", n:"Use before ‘points’ or ‘features’.", ex:"Let’s summarise the salient risks.", syn:"key, principal", beware:"Not just ‘interesting’; it’s what matters most."},
+  {w:"laconic", ipa:"/ləˈkɒnɪk/", pos:"adjective", reg:"neutral", d:"Using very few words; terse but effective.", n:"Often dry, sometimes wry.", ex:"His laconic reply ended the speculation.", syn:"terse, pithy", beware:"Can feel curt if overused."},
+  {w:"parsimonious", ipa:"/ˌpɑːsɪˈməʊnɪəs/", pos:"adjective", reg:"disapproving", d:"Unwilling to spend money or use resources.", n:"Sharper than ‘frugal’.", ex:"A parsimonious training budget hampered progress.", syn:"stingy, miserly", beware:"Can sound judgemental."},
+  {w:"circumspect", ipa:"/ˈsɜːkəmspekt/", pos:"adjective", reg:"approving", d:"Careful to consider risks before acting.", n:"Prudent in sensitive contexts.", ex:"Be circumspect when discussing redundancies.", syn:"cautious, prudent", beware:"Different from ‘insular’ (closed off)."},
+  {w:"expedient", ipa:"/ɪkˈspiːdɪənt/", pos:"adjective", reg:"neutral", d:"Convenient and practical though possibly not ideal.", n:"Signals trade-offs.", ex:"A quick patch was expedient but fragile.", syn:"pragmatic, convenient", beware:"Can imply cutting corners."},
+  {w:"fastidious", ipa:"/fæsˈtɪdɪəs/", pos:"adjective", reg:"neutral/approving", d:"Very attentive to detail and high standards.", n:"Positive in quality; fussy in people.", ex:"The draft will benefit from a fastidious edit.", syn:"meticulous, exacting", beware:"Avoid when you mean simply ‘careful’."},
+  {w:"pellucid", ipa:"/pɛˈluːsɪd/", pos:"adjective", reg:"formal", d:"Very clear and easy to understand.", n:"Nice for writing or explanations.", ex:"Her pellucid prose made the policy readable.", syn:"clear, lucid", beware:"Similar to ‘perspicuous’; don’t overdo it."},
+  {w:"perspicacious", ipa:"/ˌpɜːspɪˈkeɪʃəs/", pos:"adjective", reg:"approving", d:"Having keen insight; quickly understanding things.", n:"Praise for sharp judgement.", ex:"A perspicacious reading of the stakeholder map.", syn:"astute, shrewd", beware:"Not the same as ‘perspicuous’ (clear)."},
+  {w:"punctilious", ipa:"/pʌŋkˈtɪlɪəs/", pos:"adjective", reg:"neutral", d:"Precise in following rules or etiquette.", n:"Good for process or protocol.", ex:"He was punctilious about data handling.", syn:"meticulous, scrupulous", beware:"Close to ‘pedantic’ but less pejorative."},
+  {w:"trenchant", ipa:"/ˈtrɛntʃənt/", pos:"adjective", reg:"approving", d:"Vigorous, incisive, and clear-cut.", n:"A compliment for critique.", ex:"Her trenchant analysis cut through the noise.", syn:"incisive, cutting", beware:"Not merely ‘harsh’; it’s precise."},
+  {w:"verisimilitude", ipa:"/ˌvɛrɪsɪˈmɪlɪtjuːd/", pos:"noun", reg:"formal", d:"The appearance of being true or real.", n:"Often about narratives or models.", ex:"The simulation had enough verisimilitude to be useful.", syn:"realism, plausibility", beware:"Use with ‘of’ or ‘to’."},
+  {w:"assiduous", ipa:"/əˈsɪdjuːəs/", pos:"adjective", reg:"approving", d:"Showing great care and persistent effort.", n:"High-effort praise.", ex:"Thanks for your assiduous follow-up on the risks.", syn:"diligent, industrious", beware:"Stronger than ‘thorough’."},
+  {w:"diffident", ipa:"/ˈdɪfɪdənt/", pos:"adjective", reg:"neutral", d:"Shy or lacking confidence.", n:"Often situational.", ex:"She was diffident at first but asked sharp questions.", syn:"shy, self-effacing", beware:"Don’t confuse with ‘different’."},
+  {w:"demur", ipa:"/dɪˈmɜː/", pos:"verb or noun", reg:"formal", d:"To raise a polite objection; a mild objection.", n:"Softens disagreement.", ex:"I’d demur at that timeline given testing needs.", syn:"object, take issue", beware:"Noun: ‘without demur’ = without objection."},
+  {w:"capricious", ipa:"/kəˈprɪʃəs/", pos:"adjective", reg:"neutral/disapproving", d:"Given to sudden, unaccountable changes.", n:"People or policy.", ex:"Capricious targets demotivate teams.", syn:"whimsical, fickle", beware:"Save for real volatility."},
+  {w:"eschew", ipa:"/ɪsˈtʃuː/", pos:"verb", reg:"formal", d:"To deliberately avoid or abstain from.", n:"Pairs with abstractions.", ex:"We should eschew jargon in the brief.", syn:"avoid, shun", beware:"Not just ‘forget’; it’s purposeful."},
+  {w:"extol", ipa:"/ɪkˈstəʊl/", pos:"verb", reg:"formal", d:"To praise enthusiastically.", n:"Often used with ‘virtues’ or ‘benefits’.", ex:"They extolled the virtues of automation.", syn:"praise, laud", beware:"Avoid if tone must be cool."},
+  {w:"intransigent", ipa:"/ɪnˈtranzɪdʒ(ə)nt/", pos:"adjective", reg:"disapproving", d:"Unwilling to change views or agree.", n:"Stalemate contexts.", ex:"An intransigent stance blocked compromise.", syn:"unyielding, inflexible", beware:"Stronger than ‘firm’."},
+  {w:"invidious", ipa:"/ɪnˈvɪdɪəs/", pos:"adjective", reg:"formal", d:"Likely to arouse resentment or envy; unfairly discriminating.", n:"Often with comparisons or choices.", ex:"It’s invidious to compare teams on that metric.", syn:"unfair, odious", beware:"Not the same as ‘envious’."},
+  {w:"obviate", ipa:"/ˈɒbvɪeɪt/", pos:"verb", reg:"formal", d:"To remove a need or difficulty.", n:"Pre-emptive solution.", ex:"Single sign-on obviates multiple passwords.", syn:"preclude, remove", beware:"Takes a direct object (obviate the need)."},
+  {w:"redolent", ipa:"/ˈrɛdəl(ə)nt/", pos:"adjective", reg:"literary", d:"Strongly reminiscent of; having a strong smell of.", n:"Often metaphorical.", ex:"A memo redolent of last year’s fiasco.", syn:"reminiscent, evocative", beware:"Smell sense still common."},
+  {w:"reticent", ipa:"/ˈrɛtɪs(ə)nt/", pos:"adjective", reg:"neutral", d:"Reserved; disinclined to share thoughts.", n:"Not ‘reluctant’ to do things.", ex:"He was reticent about the acquisition.", syn:"taciturn, reserved", beware:"Avoid ‘reticent to’ when you mean ‘reluctant to’."},
+  {w:"spurious", ipa:"/ˈspjʊərɪəs/", pos:"adjective", reg:"disapproving", d:"False or not based on good reasoning.", n:"Claims or correlations.", ex:"A spurious link between coffee and churn.", syn:"false, specious", beware:"Different from ‘specious’? Specious = deceptively plausible."},
+  {w:"superfluous", ipa:"/suːˈpɜːfluəs/", pos:"adjective", reg:"neutral", d:"Unnecessary; more than enough.", n:"Trim politely.", ex:"We can cut the superfluous slides.", syn:"unnecessary, redundant", beware:"Not just ‘extra’; it’s needless."},
+  {w:"tacit", ipa:"/ˈtasɪt/", pos:"adjective", reg:"neutral", d:"Understood without being stated.", n:"Agreements, knowledge.", ex:"There’s tacit buy-in to the plan.", syn:"implicit, unspoken", beware:"‘Taciturn’ = quiet person; different."},
+  {w:"temerity", ipa:"/tɪˈmɛrɪti/", pos:"noun", reg:"disapproving", d:"Excessive confidence; audacity.", n:"Often mildly sardonic.", ex:"He had the temerity to call it ‘trivial’.", syn:"audacity, nerve", beware:"Sharper than ‘boldness’."},
+  {w:"tenuous", ipa:"/ˈtɛnjʊəs/", pos:"adjective", reg:"disapproving", d:"Very weak or slight.", n:"Links, evidence, grasp.", ex:"A tenuous justification for the spend.", syn:"weak, flimsy", beware:"Not ‘tiny’; it’s about strength."},
+  {w:"unequivocal", ipa:"/ˌʌnɪˈkwɪvək(ə)l/", pos:"adjective", reg:"approving", d:"Leaving no doubt; unambiguous.", n:"Strong and clear.", ex:"We want unequivocal guidance on safety.", syn:"unambiguous, clear", beware:"Avoid if you plan to row back."},
+  {w:"untenable", ipa:"/ʌnˈtɛnəb(ə)l/", pos:"adjective", reg:"disapproving", d:"Not able to be defended against criticism.", n:"Positions, claims.", ex:"The timeline is untenable without new staff.", syn:"indefensible, unsustainable", beware:"Not simply ‘bad’; it fails under scrutiny."},
+  {w:"urbane", ipa:"/ɜːˈbeɪn/", pos:"adjective", reg:"approving", d:"Polished and courteous in manner.", n:"Cool, not gushy.", ex:"An urbane host who kept the debate civil.", syn:"suave, cultivated", beware:"Can sound arch if used sarcastically."},
+  {w:"vestigial", ipa:"/vɛˈstɪdʒɪəl/", pos:"adjective", reg:"neutral", d:"Remaining only as a trace of what once was.", n:"Process or structure remnants.", ex:"A vestigial workflow survived the migration.", syn:"residual, remnant", beware:"Not ‘vested’."},
+  {w:"vociferous", ipa:"/vəʊˈsɪf(ə)rəs/", pos:"adjective", reg:"neutral/disapproving", d:"Loud and forceful in expressing opinions.", n:"Volume of advocacy.", ex:"Vociferous opposition delayed the policy.", syn:"strident, outspoken", beware:"Can imply more heat than light."},
+  {w:"acerbic", ipa:"/əˈsɜːbɪk/", pos:"adjective", reg:"neutral/disapproving", d:"Sharp and forthright; tasting sharp.", n:"Tone descriptor.", ex:"An acerbic aside that landed poorly.", syn:"biting, caustic", beware:"‘Astringent’ is not the same."},
+  {w:"alacrity", ipa:"/əˈlakrɪti/", pos:"noun", reg:"approving", d:"Brisk and cheerful readiness.", n:"Positive eagerness.", ex:"They adopted the fix with alacrity.", syn:"readiness, willingness", beware:"Not ‘altruism’."},
+  {w:"ameliorate", ipa:"/əˈmiːlɪəreɪt/", pos:"verb", reg:"formal", d:"To make something bad or unsatisfactory better.", n:"Policies, symptoms.", ex:"We aim to ameliorate the bottleneck.", syn:"improve, mitigate", beware:"Not ‘elaborate’."},
+  {w:"anodyne", ipa:"/ˈanədʌɪn/", pos:"adjective", reg:"neutral/disapproving", d:"Inoffensive and bland; pain-relieving (noun).", n:"Often dull statements.", ex:"An anodyne statement calmed markets.", syn:"bland, inoffensive", beware:"Noun sense exists in medicine."},
+  {w:"apocryphal", ipa:"/əˈpɒkrɪf(ə)l/", pos:"adjective", reg:"neutral", d:"Of doubtful authenticity, though widely circulated.", n:"Urban-legend flavour.", ex:"An apocryphal tale about the founder.", syn:"dubious, spurious", beware:"Not automatically false."},
+  {w:"approbation", ipa:"/ˌaprəˈbeɪʃ(ə)n/", pos:"noun", reg:"formal", d:"Approval or praise.", n:"Often official or public.", ex:"The plan met with broad approbation.", syn:"approval, commendation", beware:"Spelling is easy to mistype."},
+  {w:"austere", ipa:"/ɒˈstɪə/", pos:"adjective", reg:"neutral", d:"Severe or plain; strict in manner.", n:"Design or tone.", ex:"An austere style suited the report.", syn:"spare, severe", beware:"Not only about people."},
+  {w:"axiomatic", ipa:"/ˌaksɪəˈmatɪk/", pos:"adjective", reg:"formal", d:"Self-evident; taken as a given.", n:"Use sparingly.", ex:"It is axiomatic that safety comes first.", syn:"self-evident, given", beware:"Overuse weakens impact."},
+  {w:"beleaguered", ipa:"/bɪˈliːɡəd/", pos:"adjective", reg:"neutral", d:"Under persistent pressure or difficulties.", n:"Teams or organisations.", ex:"A beleaguered support desk needs relief.", syn:"besieged, hard-pressed", beware:"Not ‘belaboured’."},
+  {w:"candour", ipa:"/ˈkandə/", pos:"noun", reg:"approving", d:"Open and honest expression.", n:"British spelling.", ex:"Thanks for your candour about the risks.", syn:"frankness, openness", beware:"US: ‘candor’."},
+  {w:"compunction", ipa:"/kəmˈpʌŋ(k)ʃ(ə)n/", pos:"noun", reg:"neutral", d:"A feeling of guilt or moral hesitation.", n:"Often ‘without compunction’.", ex:"He cut the budget without compunction.", syn:"scruple, misgiving", beware:"Countable only in set phrases."},
+  {w:"conflate", ipa:"/kənˈfleɪt/", pos:"verb", reg:"neutral", d:"To combine two things into one, often confusingly.", n:"Warn against muddling.", ex:"Let’s not conflate speed with progress.", syn:"confuse, merge", beware:"Not always negative; depends on clarity."},
+  {w:"consummate", ipa:"/ˈkɒns(j)əmət/", pos:"adjective", reg:"approving", d:"Showing great skill and flair.", n:"As verb: to complete.", ex:"A consummate mediator kept talks moving.", syn:"accomplished, masterly", beware:"Verb sense can imply marriage context."},
+  {w:"deleterious", ipa:"/ˌdɛlɪˈtɪərɪəs/", pos:"adjective", reg:"formal", d:"Harmful in a subtle or gradual way.", n:"Policies or exposures.", ex:"Deleterious effects of chronic overwork.", syn:"harmful, damaging", beware:"Not dramatic like ‘catastrophic’."},
+  {w:"delineate", ipa:"/dɪˈlɪnɪeɪt/", pos:"verb", reg:"formal", d:"To describe or mark the exact position or limits.", n:"Boundaries, scope.", ex:"We’ll delineate responsibilities clearly.", syn:"outline, define", beware:"Not ‘delinquent’."},
+  {w:"deride", ipa:"/dɪˈrʌɪd/", pos:"verb", reg:"disapproving", d:"To mock or treat with contempt.", n:"Harsh tone.", ex:"Commentators derided the prototype.", syn:"mock, ridicule", beware:"Often followed by ‘as’ (deride as…)."},
+  {w:"disabuse", ipa:"/ˌdɪsəˈbjuːz/", pos:"verb", reg:"formal", d:"To persuade someone that a belief is mistaken.", n:"Polite correction.", ex:"Let me disabuse you of that notion.", syn:"correct, enlighten", beware:"Takes object + ‘of’."},
+  {w:"dissonance", ipa:"/ˈdɪs(ə)nəns/", pos:"noun", reg:"neutral", d:"Lack of harmony or agreement.", n:"Teams, data vs story.", ex:"Dissonance between the values and incentives.", syn:"discord, mismatch", beware:"Also musical term."},
+  {w:"efface", ipa:"/ɪˈfeɪs/", pos:"verb", reg:"formal", d:"To erase or make oneself inconspicuous.", n:"‘Self-effacing’ is common.", ex:"A self-effacing style earned trust.", syn:"erase, remove", beware:"Not ‘efficacy’."},
+  {w:"efficacy", ipa:"/ˈɛfɪkəsi/", pos:"noun", reg:"formal", d:"The ability to produce the intended result.", n:"Often research contexts.", ex:"We tested the efficacy of the training.", syn:"effectiveness, potency", beware:"Not ‘efficiency’."},
+  {w:"elegiac", ipa:"/ˌɛlɪˈdʒʌɪək/", pos:"adjective", reg:"literary", d:"Mournful or reflective in tone.", n:"Style descriptor.", ex:"An elegiac note in the farewell memo.", syn:"mournful, plaintive", beware:"Soft, not overwrought."},
+  {w:"enervate", ipa:"/ˈɛnəveɪt/", pos:"verb", reg:"formal", d:"To weaken or drain energy.", n:"Commonly misused as ‘energise’.", ex:"Relentless context-switching enervates teams.", syn:"weaken, debilitate", beware:"Opposite of ‘energise’."},
+  {w:"enjoin", ipa:"/ɪnˈdʒɔɪn/", pos:"verb", reg:"formal", d:"To instruct or urge someone to do something.", n:"Often legal or official.", ex:"Staff were enjoined to keep laptops encrypted.", syn:"urge, direct", beware:"Also means legally prohibit in US usage."},
+  {w:"engender", ipa:"/ɪnˈdʒɛndə/", pos:"verb", reg:"formal", d:"To cause or give rise to.", n:"Trust, fear, change.", ex:"Transparent metrics engender trust.", syn:"foster, generate", beware:"Not people ‘gender’."},
+  {w:"ephemeral", ipa:"/ɪˈfɛm(ə)r(ə)l/", pos:"adjective", reg:"neutral", d:"Lasting for a very short time.", n:"Trends or spikes.", ex:"An ephemeral surge in sign-ups.", syn:"fleeting, transient", beware:"Pronounced with short ‘e’."},
+  {w:"equivocal", ipa:"/ɪˈkwɪvək(ə)l/", pos:"adjective", reg:"neutral", d:"Open to more than one interpretation.", n:"Ambiguous, often deliberately.", ex:"An equivocal answer on funding.", syn:"ambiguous, vague", beware:"Not the same as ‘unequivocal’."},
+  {w:"exculpate", ipa:"/ˈɛkskʌlpeɪt/", pos:"verb", reg:"formal", d:"To show or declare that someone is not guilty.", n:"Legal or metaphorical.", ex:"The audit exculpated the team.", syn:"clear, absolve", beware:"Not everyday; use when apt."},
+  {w:"exigent", ipa:"/ˈɛksɪdʒ(ə)nt/", pos:"adjective", reg:"formal", d:"Pressing; demanding immediate attention.", n:"Time-pressure contexts.", ex:"Exigent circumstances required a workaround.", syn:"pressing, urgent", beware:"Hard ‘g’ in UK."},
+  {w:"extemporise", ipa:"/ɪkˈstɛmp(ə)rʌɪz/", pos:"verb", reg:"formal", d:"To improvise without preparation.", n:"Speech or music.", ex:"He extemporised a neat summary.", syn:"improvise, ad-lib", beware:"US: extemporize."},
+  {w:"fulminate", ipa:"/ˈfʊlmɪneɪt/", pos:"verb", reg:"disapproving", d:"To express vehement protest.", n:"Rants.", ex:"He fulminated against ‘red tape’.", syn:"rant, rail", beware:"Also a chemical term."},
+  {w:"gainsay", ipa:"/ˌɡeɪnˈseɪ/", pos:"verb", reg:"formal", d:"To deny or contradict.", n:"Often set phrase.", ex:"No one can gainsay the results.", syn:"deny, dispute", beware:"Sounds archaic; use sparingly."},
+  {w:"galvanise", ipa:"/ˈɡalvənʌɪz/", pos:"verb", reg:"neutral/approving", d:"To shock or excite into action.", n:"Teams or publics.", ex:"The outage galvanised investment in resilience.", syn:"motivate, spur", beware:"Also coating metal with zinc."},
+  {w:"harbinger", ipa:"/ˈhɑːbɪn(d)ʒə/", pos:"noun", reg:"literary", d:"A person or thing that signals what is to come.", n:"Foreshadowing.", ex:"A harbinger of wider change.", syn:"forerunner, omen", beware:"Use for genuine signals."},
+  {w:"impugn", ipa:"/ɪmˈpjuːn/", pos:"verb", reg:"formal", d:"To call into question; dispute the truth or honesty of.", n:"Challenging credibility.", ex:"He impugned the figures in committee.", syn:"challenge, dispute", beware:"Often followed by an object (impugn motives)."},
+  {w:"incipient", ipa:"/ɪnˈsɪpɪənt/", pos:"adjective", reg:"formal", d:"Beginning to happen or develop.", n:"Early stages.", ex:"Incipient signs of recovery.", syn:"nascent, emerging", beware:"Not ‘insipient’."},
+  {w:"inexorable", ipa:"/ɪnˈɛks(ə)rəb(ə)l/", pos:"adjective", reg:"formal", d:"Impossible to stop or persuade.", n:"Trends or forces.", ex:"Inexorable market pressure on margins.", syn:"relentless, implacable", beware:"Save for strong forces."},
+  {w:"inimical", ipa:"/ɪnˈnɪmɪk(ə)l/", pos:"adjective", reg:"formal", d:"Harmful or hostile to.", n:"‘To’ is common.", ex:"Noise is inimical to deep work.", syn:"hostile, harmful", beware:"Not ‘inimical with’; use ‘to’."},
+  {w:"inure", ipa:"/ɪˈnjʊə/", pos:"verb", reg:"formal", d:"To accustom to something unpleasant.", n:"With ‘to’.", ex:"We became inured to late nights.", syn:"harden, habituate", beware:"Spelling often trips people."},
+  {w:"lacuna", ipa:"/ləˈkjuːnə/", pos:"noun", reg:"formal", d:"An unfilled gap or missing part.", n:"Knowledge or data.", ex:"A lacuna in the evidence base.", syn:"gap, omission", beware:"Plural ‘lacunae’ or ‘lacunas’."},
+  {w:"lionise", ipa:"/ˈlaɪənaɪz/", pos:"verb", reg:"neutral", d:"To treat someone as a celebrity.", n:"Over-praise.", ex:"We shouldn’t lionise lone heroes.", syn:"idolise, celebrate", beware:"US: lionize."},
+  {w:"magnanimous", ipa:"/maɡˈnanɪməs/", pos:"adjective", reg:"approving", d:"Generous or forgiving to a rival or less powerful person.", n:"Grace in victory.", ex:"A magnanimous response to criticism.", syn:"generous, noble", beware:"Different from ‘munificent’ (very generous)."},
+  {w:"mendacious", ipa:"/mɛnˈdeɪʃəs/", pos:"adjective", reg:"disapproving", d:"Not telling the truth; lying.", n:"Harsh.", ex:"A mendacious claim in the brochure.", syn:"dishonest, deceitful", beware:"Use only when sure."},
+  {w:"mercurial", ipa:"/məːˈkjʊərɪəl/", pos:"adjective", reg:"neutral", d:"Subject to sudden or unpredictable changes of mood.", n:"People or markets.", ex:"A mercurial founder makes planning hard.", syn:"volatile, capricious", beware:"Not ‘metallic’."},
+  {w:"mitigate", ipa:"/ˈmɪtɪɡeɪt/", pos:"verb", reg:"neutral", d:"To make less severe, serious or painful.", n:"Risks, harm.", ex:"Extra testing mitigates the risk.", syn:"reduce, alleviate", beware:"Don’t pair with ‘against’."},
+  {w:"obdurate", ipa:"/ˈɒbdjʊrət/", pos:"adjective", reg:"disapproving", d:"Stubbornly refusing to change one’s opinion.", n:"People.", ex:"An obdurate refusal to consider evidence.", syn:"stubborn, intransigent", beware:"Harsher than ‘firm’."},
+  {w:"opaque", ipa:"/əʊˈpeɪk/", pos:"adjective", reg:"neutral", d:"Not transparent; hard to understand.", n:"Writing, process.", ex:"An opaque policy confused staff.", syn:"obscure, unclear", beware:"Opposite: ‘transparent’ or ‘lucid’."},
+  {w:"opprobrium", ipa:"/əˈprəʊbrɪəm/", pos:"noun", reg:"formal", d:"Harsh criticism or public disgrace.", n:"Strong word.", ex:"The decision attracted public opprobrium.", syn:"condemnation, shame", beware:"Don’t overuse."},
+  {w:"ostensible", ipa:"/ɒˈstɛnsɪb(ə)l/", pos:"adjective", reg:"neutral", d:"Stated or appearing to be true, but not necessarily so.", n:"Surface vs real.", ex:"The ostensible goal was ‘efficiency’.", syn:"apparent, professed", beware:"Not identical to ‘ostentatious’."},
+  {w:"perfunctory", ipa:"/pəˈfʌŋ(k)t(ə)ri/", pos:"adjective", reg:"disapproving", d:"Carried out with minimal effort or reflection.", n:"Bare-minimum work.", ex:"A perfunctory review missed the flaw.", syn:"cursory, superficial", beware:"Spelling: ‘perfunctory’ (note ‘r’), not ‘perfuctory’."},
+  {w:"pernicious", ipa:"/pəˈnɪʃəs/", pos:"adjective", reg:"formal", d:"Having a harmful effect, especially gradual or subtle.", n:"Culture, myths.", ex:"Pernicious myths about meritocracy.", syn:"harmful, deleterious", beware:"Often long-term harms."},
+  {w:"perspicuous", ipa:"/pəːˈspɪkjʊəs/", pos:"adjective", reg:"formal", d:"Clearly expressed and easily understood.", n:"About expression, not people.", ex:"A perspicuous summary of the evidence.", syn:"clear, lucid", beware:"Not ‘perspicacious’ (keen insight)."},
+  {w:"phlegmatic", ipa:"/flɛɡˈmatɪk/", pos:"adjective", reg:"neutral/approving", d:"Calm, unemotional in a cool way.", n:"Steady under pressure.", ex:"Her phlegmatic response steadied the room.", syn:"stoic, composed", beware:"Not apathetic; it’s calm control."},
+  {w:"platitude", ipa:"/ˈplætɪtjuːd/", pos:"noun", reg:"disapproving", d:"A remark that is overused and unoriginal.", n:"Empty comfort.", ex:"The memo offered platitudes instead of action.", syn:"banality, cliché", beware:"Use when something is trite."},
+  {w:"proclivity", ipa:"/prəˈklɪvɪti/", pos:"noun", reg:"neutral", d:"A natural or habitual tendency.", n:"Often for something bad.", ex:"A proclivity for over-engineering.", syn:"tendency, inclination", beware:"Close to ‘propensity’."},
+  {w:"prosaic", ipa:"/prə(ʊ)ˈzeɪɪk/", pos:"adjective", reg:"neutral/disapproving", d:"Lacking poetic beauty; commonplace.", n:"Plain, uninspired.", ex:"A prosaic solution that worked.", syn:"mundane, unromantic", beware:"Can be neutral in business."},
+  {w:"protean", ipa:"/ˈprəʊtɪən/", pos:"adjective", reg:"approving", d:"Able to change easily; versatile.", n:"People or tools.", ex:"A protean researcher across methods.", syn:"versatile, adaptable", beware:"Pronounced ‘pro-tee-an’."},
+  {w:"prudent", ipa:"/ˈpruːd(ə)nt/", pos:"adjective", reg:"approving", d:"Acting with care for the future; sensible.", n:"Measured foresight.", ex:"A prudent pace for the rollout.", syn:"sensible, judicious", beware:"Not ‘prude’."},
+  {w:"querulous", ipa:"/ˈkwɛrjʊləs/", pos:"adjective", reg:"disapproving", d:"Complaining in a petulant way.", n:"Tone critique.", ex:"A querulous email chain drained goodwill.", syn:"peevish, whining", beware:"Choose sparingly; it stings."},
+  {w:"quixotic", ipa:"/kwɪkˈsɒtɪk/", pos:"adjective", reg:"neutral/disapproving", d:"Extremely idealistic; unrealistic.", n:"Charming but impractical.", ex:"A quixotic plan to replace email.", syn:"impractical, idealistic", beware:"Soft ‘x’ sound."},
+  {w:"rarefied", ipa:"/ˈrɛːrɪfʌɪd/", pos:"adjective", reg:"neutral", d:"Intended for or understood by a small, specialised group.", n:"High-level discourse.", ex:"A rarefied debate on epistemology.", syn:"esoteric, high-level", beware:"Also ‘thin air’; context matters."},
+  {w:"recalcitrant", ipa:"/rɪˈkalsɪtr(ə)nt/", pos:"adjective", reg:"disapproving", d:"Stubbornly uncooperative.", n:"People or systems.", ex:"A recalcitrant vendor blocked integration.", syn:"obstinate, defiant", beware:"Harsher than ‘reluctant’."},
+  {w:"refractory", ipa:"/rɪˈfrakt(ə)ri/", pos:"adjective", reg:"formal", d:"Resistant to control or treatment.", n:"Materials or people.", ex:"Refractory bugs resisted quick fixes.", syn:"stubborn, unmanageable", beware:"Medical and materials senses exist."},
+  {w:"sagacious", ipa:"/səˈɡeɪʃəs/", pos:"adjective", reg:"approving", d:"Having good judgement; wise.", n:"Warm praise.", ex:"A sagacious call under pressure.", syn:"wise, judicious", beware:"Use sincerely."},
+  {w:"sanguine", ipa:"/ˈsaŋɡwɪn/", pos:"adjective", reg:"neutral/approving", d:"Optimistic, especially in difficult situations.", n:"Measured optimism.", ex:"Sanguine about hitting the deadline.", syn:"optimistic, bullish", beware:"Don’t confuse with ‘sanguinary’."},
+  {w:"sententious", ipa:"/sɛnˈtɛnʃəs/", pos:"adjective", reg:"disapproving", d:"Moralising in a pompous way.", n:"Tone critique.", ex:"A sententious keynote full of clichés.", syn:"preachy, sanctimonious", beware:"Sharper than ‘earnest’."},
+  {w:"solicitous", ipa:"/səˈlɪsɪtəs/", pos:"adjective", reg:"approving", d:"Showing interest or care.", n:"Supportive tone.", ex:"A solicitous manager checked in daily.", syn:"attentive, considerate", beware:"Not ‘solicit’ (to seek)."},
+  {w:"specious", ipa:"/ˈspiːʃəs/", pos:"adjective", reg:"disapproving", d:"Superficially plausible but actually wrong.", n:"Arguments or excuses.", ex:"A specious appeal to ‘common sense’.", syn:"misleading, spurious", beware:"Looks plausible; that’s the point."},
+  {w:"taciturn", ipa:"/ˈtasɪtəːn/", pos:"adjective", reg:"neutral", d:"Saying little; reserved.", n:"Personality trait.", ex:"A taciturn but capable engineer.", syn:"reticent, reserved", beware:"Not inherently unfriendly."},
+  {w:"turgid", ipa:"/ˈtɜːdʒɪd/", pos:"adjective", reg:"disapproving", d:"Swollen; (of writing) pompous and over-complicated.", n:"Style critique.", ex:"Turgid prose that obscured the point.", syn:"bombastic, overwrought", beware:"Not the same as ‘turbid’ (murky)."},
+  {w:"turbid", ipa:"/ˈtɜːbɪd/", pos:"adjective", reg:"neutral", d:"Cloudy or opaque; confused.", n:"Water or arguments.", ex:"A turbid explanation confused the team.", syn:"muddy, opaque", beware:"Don’t confuse with ‘turgid’."},
+  {w:"venerate", ipa:"/ˈvɛnəreɪt/", pos:"verb", reg:"formal", d:"To regard with deep respect.", n:"People or traditions.", ex:"We venerate the craft of good writing.", syn:"revere, respect", beware:"Stronger than ‘admire’."},
+  {w:"veracity", ipa:"/vəˈrasɪti/", pos:"noun", reg:"approving", d:"Conformity to facts; truthfulness.", n:"Data, people.", ex:"We checked the veracity of the numbers.", syn:"truth, accuracy", beware:"Not ‘voracity’ (greediness)."},
+  {w:"vicissitude", ipa:"/vɪˈsɪsɪtjuːd/", pos:"noun", reg:"formal", d:"A change of circumstances, often unpleasant.", n:"Ups and downs.", ex:"The vicissitudes of startup life.", syn:"changes, fluctuations", beware:"Usually plural."},
+  {w:"winsome", ipa:"/ˈwɪns(ə)m/", pos:"adjective", reg:"approving", d:"Attractive in a fresh, engaging way.", n:"Light compliment.", ex:"A winsome opening put the panel at ease.", syn:"charming, appealing", beware:"Not ‘winsome over’ (wrong verb)."},
+  {w:"acerose", ipa:"/ˈasɪrəʊs/", pos:"adjective", reg:"technical/literary", d:"Needle-like (shape).", n:"Use only if apt.", ex:"Acerose leaves of pines.", syn:"needle-shaped", beware:"Very niche; include for range."}
+];
+
+const KEY = "polished_diction_v1";
+const state = JSON.parse(localStorage.getItem(KEY) || "{}");
+if(!state.points){ state.points = 0; }
+if(!state.streak){ state.streak = 0; }
+if(!state.lastActive){ state.lastActive = ""; }
+if(!state.mastery){ state.mastery = {}; }
+if(!state.sentences){ state.sentences = {}; }
+if(!state.custom){ state.custom = []; }
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function todayISO(){ const d = new Date(); return d.toISOString().slice(0,10); }
+function isNextDay(prevISO, curISO){ const a=new Date(prevISO), b=new Date(curISO); return Math.round((b-a)/86400000)===1; }
+function updateStreakOnActivity(){
+  const t = todayISO();
+  if(state.lastActive !== t){
+    if(state.lastActive && isNextDay(state.lastActive, t)) state.streak += 1;
+    else if(state.lastActive !== "") state.streak = 1;
+    else state.streak = 1;
+    state.lastActive = t;
+    save();
+  }
+}
+function levelFor(points){
+  if(points >= 1000) return "Level 6 • Polymath";
+  if(points >= 600) return "Level 5 • Savant";
+  if(points >= 350) return "Level 4 • Adept";
+  if(points >= 200) return "Level 3 • Astute";
+  if(points >= 100) return "Level 2 • Fluent";
+  return "Level 1 • Initiate";
+}
+function hashDate(seed){ let h=0; for(let i=0;i<seed.length;i++){ h = Math.imul(31,h)+seed.charCodeAt(i)|0; } return Math.abs(h); }
+function fullLibrary(){ return [...LIB, ...state.custom]; }
+function pickWord(seed=null){ const lib=fullLibrary(); const s=seed||todayISO(); const idx=hashDate(s)%lib.length; return lib[idx]; }
+
+let current = pickWord();
+function renderWord(w){
+  document.getElementById("word").textContent = w.w;
+  document.getElementById("ipa").textContent = w.ipa || "";
+  document.getElementById("pos").textContent = w.pos || "";
+  document.getElementById("register").textContent = w.reg || "";
+  document.getElementById("definition").textContent = w.d || "";
+  document.getElementById("nuance").textContent = w.n || "";
+  document.getElementById("example").textContent = w.ex || "";
+  document.getElementById("synonyms").textContent = w.syn || "";
+  document.getElementById("beware").textContent = w.beware || "";
+  const m = Math.min(100, state.mastery[w.w] || 0);
+  document.getElementById("masteryBar").style.width = m + "%";
+  document.getElementById("today").textContent = new Date().toLocaleDateString(undefined,{weekday:'long', day:'numeric', month:'short'});
+}
+function renderHUD(){
+  document.getElementById("points").textContent = state.points;
+  document.getElementById("streak").textContent = state.streak;
+  document.getElementById("levelTag").textContent = levelFor(state.points);
+  document.getElementById("savedCount").textContent = Object.keys(state.sentences).length;
+}
+function renderLibrary(){
+  const lib = fullLibrary();
+  const div = document.getElementById("library");
+  div.innerHTML = "";
+  const ul = document.createElement("ul");
+  ul.className = "list small";
+  lib.forEach(w => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${w.w}</strong> — <span class="muted">${w.d}</span>`;
+    ul.appendChild(li);
+  });
+  div.appendChild(ul);
+}
+function addPoints(n){ state.points += n; save(); renderHUD(); }
+
+document.getElementById("markLearnt").addEventListener("click", () => {
+  const w = current.w;
+  state.mastery[w] = Math.min(100, (state.mastery[w] || 0) + 10);
+  addPoints(1);
+  document.getElementById("masteryBar").style.width = (state.mastery[w]) + "%";
+  updateStreakOnActivity();
+});
+document.getElementById("newWordBtn").addEventListener("click", () => {
+  current = pickWord(Math.random().toString(36).slice(2));
+  renderWord(current);
+  setupQuiz();
+});
+document.getElementById("saveSentence").addEventListener("click", () => {
+  const txt = document.getElementById("sentence").value.trim();
+  if(!txt) return;
+  const key = todayISO();
+  state.sentences[key] = {word: current.w, text: txt};
+  save();
+  addPoints(5);
+  updateStreakOnActivity();
+  document.getElementById("sentence").value = "";
+  renderSentences();
+});
+function renderSentences(){
+  const div = document.getElementById("sentenceList");
+  const entries = Object.entries(state.sentences).sort((a,b)=>b[0].localeCompare(a[0]));
+  div.innerHTML = entries.map(([date, obj]) => `<div class="muted">• <span class="small">${date}</span> — <strong>${obj.word}</strong>: ${obj.text}</div>`).join("");
+  document.getElementById("savedCount").textContent = entries.length;
+}
+
+let quizAnswer = 0;
+function setupQuiz(){
+  const lib = fullLibrary();
+  const correct = current;
+  const choices = [correct];
+  while(choices.length < 3){
+    const c = lib[Math.floor(Math.random()*lib.length)];
+    if(!choices.includes(c)) choices.push(c);
+  }
+  for(let i=choices.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [choices[i],choices[j]]=[choices[j],choices[i]]; }
+  quizAnswer = choices.findIndex(x => x.w === correct.w);
+  const q = document.getElementById("quizOptions");
+  q.innerHTML = "";
+  choices.forEach((c, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.style.display = "block";
+    btn.style.margin = "6px 0";
+    btn.textContent = c.d;
+    btn.addEventListener("click", () => {
+      const fb = document.getElementById("quizFeedback");
+      if(idx === quizAnswer){
+        fb.innerHTML = `<span class="kudos">Correct.</span> ‘${correct.w}’ — ${correct.d}`;
+        addPoints(10);
+        state.mastery[correct.w] = Math.min(100, (state.mastery[correct.w] || 0) + 15);
+        save();
+        document.getElementById("masteryBar").style.width = (state.mastery[correct.w]) + "%";
+        updateStreakOnActivity();
+      }else{
+        fb.innerHTML = `<span class="bad">Not quite.</span> Best fit: ‘${correct.w}’ — ${correct.d}`;
+      }
+    });
+    q.appendChild(btn);
+  });
+}
+document.getElementById("nextQuiz").addEventListener("click", setupQuiz);
+
+document.getElementById("addCustom").addEventListener("click", () => {
+  const w = document.getElementById("customWord").value.trim();
+  const d = document.getElementById("customDef").value.trim();
+  if(!w || !d) return;
+  state.custom.push({w, ipa:"", pos:"", reg:"custom", d, n:"(added by you)", ex:"", syn:"", beware:""});
+  save();
+  document.getElementById("customWord").value = "";
+  document.getElementById("customDef").value = "";
+  renderLibrary();
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "polished-diction-progress.json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 0);
+});
+document.getElementById("importBtn").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+document.getElementById("importFile").addEventListener("change", (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      ["points","streak","lastActive","mastery","sentences","custom"].forEach(k => { if(k in data) state[k]=data[k]; });
+      save(); renderHUD(); renderSentences(); renderLibrary(); renderWord(current);
+      alert("Imported. Your progress has been restored.");
+    }catch(err){ alert("Could not import: " + err.message); }
+  };
+  reader.readAsText(file);
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if(confirm("Reset points, streak, mastery and sentences? Your custom words will remain.")){
+    state.points = 0; state.streak = 0; state.lastActive = ""; state.mastery = {}; state.sentences = {};
+    save(); renderHUD(); renderSentences(); renderWord(current);
+  }
+});
+
+const notifyBtn = document.getElementById("notifyBtn");
+notifyBtn.addEventListener("click", async () => {
+  if(!("Notification" in window)) { alert("Notifications not supported in this browser."); return; }
+  let perm = Notification.permission;
+  if(perm !== "granted"){
+    perm = await Notification.requestPermission();
+  }
+  if(perm === "granted"){
+    scheduleDailyReminder();
+    notifyBtn.textContent = "Reminder on";
+    notifyBtn.disabled = true;
+  }
+});
+function scheduleDailyReminder(){
+  new Notification("Polished Diction", { body: "Word of the day is ready. Two minutes; no fuss." });
+  function msUntilNine(){
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(9,0,0,0);
+    if(next <= now) next.setDate(next.getDate()+1);
+    return next - now;
+  }
+  setTimeout(function tick(){
+    new Notification("Polished Diction", { body: "A quick word, a quick win." });
+    setTimeout(tick, 24*60*60*1000);
+  }, msUntilNine());
+}
+
+// Init
+current = pickWord();
+renderWord(current);
+renderHUD();
+renderLibrary();
+renderSentences();
+setupQuiz();
+</script>
+
+<script>
+// Register service worker for install + offline
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js').catch(function(err){
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
